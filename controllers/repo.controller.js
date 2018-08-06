@@ -36,7 +36,7 @@ module.exports.listPullrequests = async (req, res) => {
   try {
     const pullrequests = await Repository.find(
       {
-        owner: req.user.id,
+        // owner: req.user.id,
         _id: req.params.id,
       },
       {
@@ -72,6 +72,7 @@ module.exports.listPullrequests = async (req, res) => {
 };
 
 module.exports.update = async user => {
+  console.log("being called")
   const axiosConfig = {
     headers: { Authorization: 'token ' + user.accessToken },
   };
@@ -85,7 +86,6 @@ module.exports.update = async user => {
     const existingRepo = await Repository.findOne({
       githubId: allRepos.id,
     });
-
     const values = {
       githubId: allRepos.id,
       name: allRepos.name,
@@ -146,6 +146,8 @@ module.exports.update = async user => {
       }
     } else {
       await existingRepo.update(values);
+      await pullrequestController.update(existingRepo, user);
+
     }
   });
 };

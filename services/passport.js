@@ -6,8 +6,9 @@ const mongoose = require('mongoose');
 const keys = require('../config/keys');
 const userController = require('../controllers/user.controller');
 const repoController = require('../controllers/repo.controller');
+const pullRequestController = require('../controllers/pullrequest.controller')
 
-const User = mongoose.model('users');
+const User = require('../models/User.js')
 
 passport.serializeUser((user, done) => {
   done(null, user.id);
@@ -29,7 +30,6 @@ passport.use(
     async (payload, done) => {
       try {
         const user = await User.findById(payload.sub);
-        console.log(user);
         if (user) {
           done(null, user);
         } else {
@@ -56,9 +56,10 @@ passport.use(
           await existingUser.update({ $set: { accessToken } });
           await userController.update(existingUser);
           await repoController.update(existingUser);
+
+
           return done(null, existingUser);
         }
-        console.log("MAKING USER")
         const user = await new User({
           githubId: profile._json.id,
           loginName: profile._json.login,
@@ -72,7 +73,7 @@ passport.use(
         }).save();
         await userController.update(user);
         await repoController.update(user);
-        console.log('created user');
+
         done(null, user);
 
       } catch (e) {
