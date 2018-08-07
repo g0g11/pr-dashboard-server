@@ -50,13 +50,13 @@ module.exports.update = async (repo, user) => {
   // console.log("PULLURL", repo.pullUrl)
   // console.log("FETCHPULLS", fetchPulls)
 
-  fetchPulls.data.forEach(async pull => {
+  await Promise.all(fetchPulls.data.map(async pull => {
     // console.log(pull);
     const comments = await axios.get(pull.comments_url, axiosConfig)
     // console.log("COMMENTS", comments.data.length)
     const commentsBody = comments.data.map(comment => comment.body)
-    // console.log("COMMENT BODY", commentsBody)
-    
+    console.log("COMMENT BODY", commentsBody)
+    // console.log("pull", pull)
     const values = {
       githubId: pull.id,
       number: pull.number,
@@ -65,7 +65,7 @@ module.exports.update = async (repo, user) => {
       state: pull.state,
       title: pull.title,
       comment: pull.body,
-      comments: comments.data.length,
+      comments: commentsBody.length || 0,
       commentsBody: commentsBody,
       owner: user._id,
       repository: repo._id,
@@ -81,51 +81,27 @@ module.exports.update = async (repo, user) => {
       closed_at: pull.closed_at,
       merged_at: pull.merged_at,
     };
-    let thisPull = await Pullrequest.find({githubId: pull.id})
+    const thisPull = await Pullrequest.findOne({githubId: pull.id})
     if (thisPull) {
       await Pullrequest.findOneAndUpdate(
         {
           githubId: pull.id
         },
         {
-          $set: {
-            githubId: pull.id,
-            number: pull.number,
-            webUrl: pull.html_url,
-            apiUrl: pull.url,
-            state: pull.state,
-            title: pull.title,
-            comment: pull.body,
-            comments: comments.data.length,
-            commentsBody: commentsBody,
-            owner: user._id,
-            repository: repo._id,
-            user: {
-              githubId: pull.user.id,
-              loginName: pull.user.login,
-              picture: pull.user.avatar_url,
-              apiUrl: pull.user.url,
-              webUrl: pull.user.html_url,
-            },
-            created_at: pull.created_at,
-            updated_at: pull.updated_at,
-            closed_at: pull.closed_at,
-            merged_at: pull.merged_at,
-          }
-        }
+          $set: values
+        },
+        {new: true}
       )
     } else {
       await new Pullrequest(values).save();
     }
-  });
+  }));
 };
 
 module.exports.seen = async (req, res) => {
   try {
     await Pullrequest.findOneAndUpdate(
-      {
-        _id: req.params.id
-      },
+      {_id: req.params.id},
       { $set: { seen: true } },
     );
     res.status(200).send({ id: req.params.id });
